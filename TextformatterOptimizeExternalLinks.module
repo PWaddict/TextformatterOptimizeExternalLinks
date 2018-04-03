@@ -36,10 +36,10 @@ class TextformatterOptimizeExternalLinks extends Textformatter implements Config
   }
 
   public function format(&$str) {
-		$str = preg_replace_callback('%<(a\s[^>]+)>%isU', array($this,"mark_external"), $str);
-	}
+    $str = preg_replace_callback('%<(a\s[^>]+)>%isU', array($this,"mark_external"), $str);
+  }
 
-	function mark_external($match) {
+  function mark_external($match) {
 
     list($original, $tag) = $match;
     if(preg_match('%\srel=(\'|")?[^\1]*nofollow(\s|\1|$)%i', $tag)) {
@@ -61,7 +61,7 @@ class TextformatterOptimizeExternalLinks extends Textformatter implements Config
     $noreferrer = $this->data['noreferrer'] ? ' ' . 'noreferrer' : '';
 
     return "<$tag class='external' rel='nofollow" . $noopener . $noreferrer . "' ". $target . ">";
-	}
+  }
 
   public function getModuleConfigInputfields(array $data) {
 
