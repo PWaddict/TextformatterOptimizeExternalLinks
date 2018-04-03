@@ -1,0 +1,90 @@
+<?php namespace ProcessWire;
+
+/**
+ * Optimize External Links Module
+ * ProcessWire 3.x, Copyright 2018 by Ryan Cramer
+ * https://processwire.com
+ *
+ */
+
+class TextformatterOptimizeExternalLinks extends Textformatter implements ConfigurableModule {
+
+  public static function getModuleInfo() {
+
+    return array(
+      'title' => 'Optimize External Links',
+      'version' => '1.0.0',
+      'summary' => 'Adds a class="external" and a rel="nofollow" to every external link by default. Optionally adds a rel="noopener", a rel="noreferrer" and a target="_blank".',
+      'author' => 'PWaddict',
+      'icon' => 'external-link'
+    );
+  }
+
+  protected $data = array();
+
+  static public function getDefaultData() {
+    return array(
+      "noopener" => 0,
+      "noreferrer" => 0
+    );
+  }
+
+  public function __construct() {
+    foreach(self::getDefaultData() as $key => $value) {
+      $this->$key = $value;
+    }
+  }
+
+  public function format(&$str) {
+		$str = preg_replace_callback('%<(a\s[^>]+)>%isU', array($this,"mark_external"), $str);
+	}
+
+	function mark_external($match) {
+
+    list($original, $tag) = $match;
+    if(preg_match('%\srel=(\'|")?[^\1]*nofollow(\s|\1|$)%i', $tag)) {
+      return $original;
+    }
+
+    if(preg_match('(mailto\:)', $tag)) {
+      return $original;
+    }
+
+    $host = preg_quote($this->config->httpHost, "%");
+    $root = $this->config->urls->root ? preg_quote(rtrim($this->config->urls->root ,"/"), "%") : "";
+    if(preg_match('%\shref=(\'|")?(?:[\.]+|(?:https?:)?//'.$host.$root.'|(?!//)'.$root.')(?:/|\1|\?|#|\s|$)%is', $tag)) {
+      return $original;
+    }
+
+    $noopener = $this->data['noopener'] ? ' ' . 'noopener' : '';
+    $target = $this->data['noopener'] ? 'target="_blank"' : '';
+    $noreferrer = $this->data['noreferrer'] ? ' ' . 'noreferrer' : '';
+
+    return "<$tag class='external' rel='nofollow" . $noopener . $noreferrer . "' ". $target . ">";
+	}
+
+  public function getModuleConfigInputfields(array $data) {
+
+    $data = array_merge(self::getDefaultData(), $data);
+    $inputfields = new InputfieldWrapper();
+    $modules = $this->wire('modules');
+
+    $f = $modules->get('InputfieldCheckbox');
+    $f->attr('name+id', 'noopener');
+    $f->label = __('Add target="_blank" & rel="noopener"');
+    $f->description = __('Enable this option to open the external links on new window/tab combined with rel="noopener" to improve performance and prevent security vulnerabilities.');
+    $f->columnWidth = 50;
+    $f->attr('checked', isset($data['noopener']) && $data['noopener'] ? 'checked' : '' );
+    $inputfields->add($f);
+
+    $f = $modules->get('InputfieldCheckbox');
+    $f->attr('name+id', 'noreferrer');
+    $f->label = __('Add rel="noreferrer"');
+    $f->description = __("Enable this option to hide your website url from the external link's analytics.");
+    $f->columnWidth = 50;
+    $f->attr('checked', isset($data['noreferrer']) && $data['noreferrer'] ? 'checked' : '' );
+    $inputfields->add($f);
+
+    return $inputfields;
+    }
+}
